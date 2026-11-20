@@ -228,6 +228,7 @@ function open(f,h){
   +'<h4>Historial del paciente</h4><div class="ths" id="fth"></div><div class="row"><button class="btn" type="button" id="pf">＋ Foto de ficha del paciente</button></div><input type="file" id="ph2" accept="image/*" hidden>'
   +'<div id="hh">'+histHtml(cid,id)+'</div>'
   +'<div class="row" style="margin-top:16px"><button class="btn p" id="sv">Guardar</button>'
+  +(ex&&es0!="cancelada"?(es0=="pagada"?'<button class="btn" id="unpg">Quitar pagado</button>':'<button class="btn p" id="pg" style="background:#3cb371;border-color:#3cb371">✅ Marcar pagada</button>'):'')
   +(ex&&waUrl(c)?'<a class="btn" target="_blank" rel="noopener" href="'+waUrl(c)+'">💬 WhatsApp</a>':"")
   +(ex?'<button class="btn" id="cn">'+(c.estado=="cancelada"?"Reactivar cita":"Cancelar cita")+'</button><button class="btn d" id="dl">Liberar</button>':'<button class="btn" id="qh">Quitar esta hora (solo este día)</button>')
   +'<button class="btn" id="cl2">Cerrar</button></div>'
@@ -285,6 +286,8 @@ function open(f,h){
       $("#ps").textContent=msg}catch(e){$("#ps").textContent="No se pudo leer la foto. Revisa la conexión e intenta de nuevo."}
     $("#pb").disabled=false};
   $("#sv").onclick=function(){save($("#es").value,ex?"editar":"crear")};
+  if($("#pg"))$("#pg").onclick=function(){if(!Number($("#fmf").value)){alert("Falta el Monto final. Escríbelo y vuelve a tocar \"Marcar pagada\".");$("#fmf").focus();return}$("#es").value="pagada";save("pagada","pagar")};
+  if($("#unpg"))$("#unpg").onclick=function(){if(!confirm("¿Quitar el pagado? La cita quedará como Confirmada."))return;$("#es").value="confirmada";save("confirmada","quitar pagado")};
   $("#cl2").onclick=close;
   if(ex){$("#cn").onclick=function(){var cc=est(c)=="cancelada";save(cc?"reservada":"cancelada",cc?"reactivar":"cancelar")};
     $("#dl").onclick=function(){if(!confirm("¿Liberar este horario? Quedará disponible y en blanco."))return;logIt("liberar",id,c,cl);db.doc("citas/"+id).delete().then(close)}}
