@@ -63,7 +63,7 @@ input[type=password],input[type=text],input[type=tel],input[type=email],input[ty
 .ths{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}.th{width:84px;text-align:center}.th small{font-size:10px;color:var(--mut);display:block}
 .th img{width:84px;height:84px;object-fit:cover;border-radius:8px;cursor:pointer}
 .th img.big{position:fixed;inset:4%;width:92%;height:92%;object-fit:contain;background:#000;z-index:50;border-radius:0}
-#pb,#ps{display:none}.note{font-size:12px;color:var(--mut);margin-top:8px}
+.note{font-size:12px;color:var(--mut);margin-top:8px}
 .colac{display:block;padding:6px 10px;margin-bottom:6px;border-radius:10px;font-size:13px;color:var(--mut);border:1px dashed var(--bd)}
 .bloq{padding:14px 10px;border-radius:10px;background:var(--can);color:var(--chip);text-align:center;font-weight:600}
 .slot.pag{box-shadow:inset 4px 0 0 #3cb371}.slot.cnf{box-shadow:inset 4px 0 0 var(--acc)}
@@ -163,6 +163,30 @@ function render(){
 }
 function shrink(file){return new Promise(function(ok,no){var im=new Image();im.onload=function(){var s=Math.min(1,1000/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext("2d").drawImage(im,0,0,c.width,c.height);var q=.7,u=c.toDataURL("image/jpeg",q);while(u.length>190000&&q>.3){q-=.1;u=c.toDataURL("image/jpeg",q)}u.length>190000?no():ok(u)};im.onerror=no;im.src=URL.createObjectURL(file)})}
 function dataBlob(u){var b=atob(u.split(",")[1]),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return new Blob([a],{type:"image/jpeg"})}
+var RUT_ESS="782625233",tessP=null;
+function loadTess(){if(window.Tesseract)return Promise.resolve();if(!tessP)tessP=new Promise(function(ok,no){var s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";s.onload=ok;s.onerror=function(){tessP=null;no()};document.head.appendChild(s)});return tessP}
+function prepImg(file){return new Promise(function(ok,no){var im=new Image();im.onload=function(){var sc=Math.min(2,1800/im.width),c=document.createElement("canvas");c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);
+  var x=c.getContext("2d");x.drawImage(im,0,0,c.width,c.height);var d=x.getImageData(0,0,c.width,c.height),p=d.data,sum=0;
+  for(var i=0;i<p.length;i+=4){var g=.299*p[i]+.587*p[i+1]+.114*p[i+2];p[i]=p[i+1]=p[i+2]=g;sum+=g}
+  if(sum/(p.length/4)<110)for(i=0;i<p.length;i+=4){p[i]=p[i+1]=p[i+2]=255-p[i]}
+  x.putImageData(d,0,0);URL.revokeObjectURL(im.src);ok(c)};im.onerror=no;im.src=URL.createObjectURL(file)})}
+async function ocrText(file){await loadTess();var c=await prepImg(file),w=await Tesseract.createWorker("spa");try{await w.setParameters({tessedit_pageseg_mode:"6"});var r=await w.recognize(c);return r.data.text||""}finally{w.terminate()}}
+function rutFmt(s){var r=String(s||"").replace(/[^0-9kK]/g,"").toUpperCase();if(r.length<8||r.length>9)return "";var b=r.slice(0,-1),dv=r.slice(-1),sm=0,m=2;
+  for(var i=b.length-1;i>=0;i--){sm+=(+b[i])*m;m=m==7?2:m+1}var e=11-sm%11;e=e==11?"0":e==10?"K":String(e);if(e!=dv||r==RUT_ESS)return "";return b.replace(/\B(?=(\d{3})+(?!\d))/g,".")+"-"+dv}
+function parseOcr(t){var o={},cl=function(s){return s.replace(/\s+\d{1,2}:\d{2}\s*[ap]\.?\s*m\.?.*$/i,"").replace(/[|«»]+/g,"").trim()},g=function(re){var m=t.match(re);return m?cl(m[1]):""};
+  var nb=g(/nombres?\s*:?\s*([^\n]+)/i),ap=g(/apellidos?\s*:?\s*([^\n]+)/i);nb=nb.replace(/^:\s*/,"");ap=ap.replace(/^:\s*/,"");
+  if(nb)o.nombre=(nb+(ap?" "+ap:"")).replace(/\s+/g," ").replace(/(^|\s)\S/g,function(c){return c.toUpperCase()});
+  var rl=t.match(/\br\.?\s?u\.?\s?t\.?\s*:?\s*([0-9][0-9.\s]{6,11}-?\s*[0-9kK])/i);if(rl)o.rut=rutFmt(rl[1]);
+  if(!o.rut){var all=t.match(/\b\d{1,2}\.?\d{3}\.?\d{3}\s?-?\s?[\dkK]\b/g)||[];for(var i=0;i<all.length&&!o.rut;i++)o.rut=rutFmt(all[i])}
+  var em=t.replace(/(\w)\s*[O0©]\s*(gmail|hotmail|outlook|yahoo|live|icloud)\./gi,"$1@$2.").match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/);if(em)o.correo=em[0];
+  else{em=t.match(/([A-Za-z][A-Za-z0-9._-]*?)(?:0?4|©)(gmail|hotmail|outlook|yahoo|icloud|live)\.(com|cl|es)\b/i);if(em)o.correo=em[1]+"@"+em[2].toLowerCase()+"."+em[3].toLowerCase()}
+  var tl=t.match(/tel[eé]fono[^:\n]*:?\s*([+\d][\d\s/]{7,16})/i),dg=function(s){return s.replace(/\//g,"7").replace(/\D/g,"")};
+  var tp=tl?dg(tl[1]):"";if(tp.length>9)tp=tp.slice(-9);if(!/^9\d{8}$/.test(tp)){var hd=t.match(/\+?\s?56\s?9[\d\s]{8,11}/);tp=hd?dg(hd[0]).slice(-9):""}
+  if(/^9\d{8}$/.test(tp))o.telefono="+56 "+tp[0]+" "+tp.slice(1,5)+" "+tp.slice(5);
+  if(/comprobante|transferencia/i.test(t)){var mo=t.match(/\$\s*([\d.,]{4,})/);if(mo)o.abono=Number(mo[1].replace(/[.,]/g,""))||0}
+  var ag=t.match(/agendad[ao][\s\S]{0,80}?(\d{1,2})\/(\d{1,2})\/(\d{4})/i);if(ag)o.fecha=ag[3]+"-"+ag[2].padStart(2,"0")+"-"+ag[1].padStart(2,"0");
+  var hr=t.match(/(\d{1,2}:\d{2})\s*hrs/i);if(hr)o.hora=nh(hr[1]);
+  return o}
 function histHtml(cid,id){
   if(!cid)return '<p>Aún sin historial.</p>';
   var L=Object.keys(citas).map(function(k){return citas[k]}).filter(function(c){return c.clienteId==cid}).sort(function(a,b){return a.fecha<b.fecha?1:-1}),t=0,a=0,h="";
@@ -249,10 +273,17 @@ function open(f,h){
   $("#pb").onclick=function(){$("#ph").click()};
   $("#pf").onclick=function(){$("#ph2").click()};
   $("#ph2").onchange=function(){var file=this.files[0];if(!file)return;shrink(file).then(function(u){pend.push({u:u,t:"ficha"});th(u,"ficha",1)}).catch(function(){alert("No se pudo cargar la foto")})};
-  $("#ph").onchange=async function(){var file=this.files[0];if(!file)return;$("#ps").textContent="Leyendo foto…";
-    try{var u=await shrink(file),sm=await claude.use("sample");if(!sm)throw 0;
-      var r=await sm.json("Esta imagen puede ser una cédula, una ficha del paciente, una captura de WhatsApp o un comprobante de transferencia. Responde solo JSON con las claves: nombre, rut, telefono, correo, abono (monto transferido en pesos chilenos como número sin puntos, solo si es comprobante), tipo (comprobante, ficha u otro). Usa cadena vacía si algo no aparece.",{images:[dataBlob(u)],modelTier:"quick",cache:false});
-      fill(r);pend.push({u:u,t:r.tipo||"documento"});th(u,r.tipo||"documento",1);$("#ps").textContent="Listo: revisa los datos antes de guardar"}catch(e){$("#ps").textContent="No se pudo leer la foto"}};
+  $("#ph").onchange=async function(){var file=this.files[0];if(!file)return;this.value="";$("#ps").textContent="Leyendo foto… (la primera vez tarda un poco más)";$("#pb").disabled=true;
+    try{var u=await shrink(file),txt=await ocrText(file),r=parseOcr(txt),got=[];
+      if(r.nombre){$("#fn").value=r.nombre;got.push("nombre");var v=r.nombre.toLowerCase();if(Object.keys(clientes).some(function(k){return (clientes[k].nombre||"").toLowerCase()==v}))$("#fn").onchange()}
+      if(r.rut){$("#fru").value=r.rut;got.push("RUT")}
+      if(r.correo){$("#fe").value=r.correo;got.push("correo")}
+      if(r.telefono){$("#ft").value=r.telefono;got.push("teléfono")}
+      if(r.abono){pend.push({u:u,t:"abono",m:r.abono,d:iso(new Date())});th(u,"abono "+money(r.abono),1);$("#fa").value=(Number($("#fa").value)||0)+r.abono;got.push("abono "+money(r.abono))}
+      var msg=got.length?"Leí: "+got.join(", ")+". Revisa antes de guardar.":"No encontré datos en la imagen. Escríbelos a mano.";
+      if(r.fecha||r.hora){var fx=r.fecha&&r.fecha!=f,hx=r.hora&&r.hora!=h;if(fx||hx)msg+=" ⚠️ La imagen dice "+(r.fecha?r.fecha.split("-").reverse().join("/"):"")+(r.hora?" "+r.hora:"")+" y esta cita es "+f.split("-").reverse().join("/")+" "+h+"."}
+      $("#ps").textContent=msg}catch(e){$("#ps").textContent="No se pudo leer la foto. Revisa la conexión e intenta de nuevo."}
+    $("#pb").disabled=false};
   $("#sv").onclick=function(){save($("#es").value,ex?"editar":"crear")};
   $("#cl2").onclick=close;
   if(ex){$("#cn").onclick=function(){var cc=est(c)=="cancelada";save(cc?"reservada":"cancelada",cc?"reactivar":"cancelar")};
