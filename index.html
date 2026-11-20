@@ -178,7 +178,7 @@ function parseOcr(t){var o={},cl=function(s){return s.replace(/\s+\d{1,2}:\d{2}\
   if(nb)o.nombre=(nb+(ap?" "+ap:"")).replace(/\s+/g," ").replace(/(^|\s)\S/g,function(c){return c.toUpperCase()});
   var rl=t.match(/\br\.?\s?u\.?\s?t\.?\s*:?\s*([0-9][0-9.\s]{6,11}-?\s*[0-9kK])/i);if(rl)o.rut=rutFmt(rl[1]);
   if(!o.rut){var all=t.match(/\b\d{1,2}\.?\d{3}\.?\d{3}\s?-?\s?[\dkK]\b/g)||[];for(var i=0;i<all.length&&!o.rut;i++)o.rut=rutFmt(all[i])}
-  var em=t.replace(/(\w)\s*[O0©]\s*(gmail|hotmail|outlook|yahoo|live|icloud)\./gi,"$1@$2.").match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/);if(em)o.correo=em[0];
+  var em=t.replace(/(\w)\s*[\(\[{]?\s*[O0©@]\s*[\)\]}]?\s*(gmail|hotmail|outlook|yahoo|live|icloud)\s*\.?\s*(com|cl|es)\b/gi,"$1@$2.$3").match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/);if(em)o.correo=em[0];
   else{em=t.match(/([A-Za-z][A-Za-z0-9._-]*?)(?:0?4|©)(gmail|hotmail|outlook|yahoo|icloud|live)\.(com|cl|es)\b/i);if(em)o.correo=em[1]+"@"+em[2].toLowerCase()+"."+em[3].toLowerCase()}
   var tl=t.match(/tel[eé]fono[^:\n]*:?\s*([+\d][\d\s/]{7,16})/i),dg=function(s){return s.replace(/\//g,"7").replace(/\D/g,"")};
   var tp=tl?dg(tl[1]):"";if(tp.length>9)tp=tp.slice(-9);if(!/^9\d{8}$/.test(tp)){var hd=t.match(/\+?\s?56\s?9[\d\s]{8,11}/);tp=hd?dg(hd[0]).slice(-9):""}
