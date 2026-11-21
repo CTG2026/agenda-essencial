@@ -103,6 +103,10 @@ function pd(f){var p=f.split("-");return new Date(+p[0],+p[1]-1,+p[2])}
 function nh(h){var p=String(h).trim().split(":");return p[0].padStart(2,"0")+":"+(p[1]||"00").padStart(2,"0")}
 function sid(f,h){return f+"_"+h.replace(":","")}
 function money(n){return "$"+Number(n||0).toLocaleString("es-CL")}
+function num(v){return Number(String(v==null?"":v).replace(/\D/g,""))||0}
+function fmtM(n){n=num(n);return n?"$ "+n.toLocaleString("es-CL"):""}
+function setM(sel,n){$(sel).value=fmtM(n)}
+document.addEventListener("input",function(e){var t=e.target;if(t&&t.classList&&t.classList.contains("clp")){t.value=fmtM(t.value)}},true);
 function est(c){return c.estado=="tomada"||!EST[c.estado]?"reservada":c.estado}
 function cls(c){var e=est(c);return e=="cancelada"?"can":((c.captada=="Dani"?"dan":"val")+(e=="pagada"?" pag":e=="confirmada"?" cnf":""))}
 function mins(h){var p=h.split(":");return (+p[0])*60+(+p[1]||0)}
@@ -215,11 +219,11 @@ function open(f,h){
   +'<div class="two"><div><label>Estado</label><select id="es">'+["reservada","confirmada","pagada"].map(function(k){return '<option value="'+k+'"'+(es0==k?" selected":"")+'>'+EST[k]+'</option>'}).join("")+(es0=="cancelada"?'<option value="cancelada" selected>Cancelada</option>':'')+'</select></div><div><label>Captada por</label><select id="cp"><option value="">—</option>'+["Dani","Vale"].map(function(k){return '<option'+(capt==k?" selected":"")+'>'+k+'</option>'}).join("")+'</select></div></div>'
   +'<label>Tratamiento de esta cita</label><select id="tr">'+selOpts(c.tratamiento,1)+'</select><input type="text" id="tro" placeholder="Escribe el tratamiento" style="display:none;margin-top:6px">'
   +'<div class="two"><div><label>Sesión número</label><input type="number" id="s1" min="0" value="'+esc(c.ses)+'"></div><div><label>De un total de</label><input type="number" id="s2" min="0" value="'+esc(c.sesT)+'"></div></div>'
-  +'<div class="two"><div><label>Monto inicial (CLP)</label><input type="number" id="fm" value="'+esc(c.monto)+'"></div><div><label>Monto final (CLP, tras evaluación)</label><input type="number" id="fmf" value="'+esc(c.montoF)+'"></div></div>'
-  +'<label>Abono (CLP)</label><input type="number" id="fa" value="'+esc(c.abono)+'">'
+  +'<div class="two"><div><label>Monto inicial ($)</label><input type="text" inputmode="numeric" class="clp" id="fm" value="'+fmtM(c.monto)+'"></div><div><label>Monto final ($, tras evaluación)</label><input type="text" inputmode="numeric" class="clp" id="fmf" value="'+fmtM(c.montoF)+'"></div></div>'
+  +'<label>Abono ($)</label><input type="text" inputmode="numeric" class="clp" id="fa" value="'+fmtM(c.abono)+'">'
   +'<div class="row" style="margin-top:6px"><button class="btn" type="button" id="a50">Abono 50%</button><button class="btn" type="button" id="atot">Pago total</button><button class="btn" type="button" id="bab">＋ Comprobante de abono</button></div><input type="file" id="ph3" accept="image/*" hidden>'
-  +'<div class="ab" id="abf"><label>Monto del comprobante (CLP)</label><input type="number" id="abm"><label>Fecha de la transferencia</label><input type="date" id="abd" value="'+iso(new Date())+'"><div class="row" style="margin-top:8px"><button class="btn p" type="button" id="abok">Agregar al abono</button><button class="btn" type="button" id="abx">Descartar</button></div></div>'
-  +'<div class="two"><div><label>Compra de productos</label><input type="text" id="pr" value="'+esc(c.prod)+'"></div><div><label>Monto productos (CLP)</label><input type="number" id="pm" value="'+esc(c.prodM)+'"></div></div>'
+  +'<div class="ab" id="abf"><label>Monto del comprobante ($)</label><input type="text" inputmode="numeric" class="clp" id="abm"><label>Fecha de la transferencia</label><input type="date" id="abd" value="'+iso(new Date())+'"><div class="row" style="margin-top:8px"><button class="btn p" type="button" id="abok">Agregar al abono</button><button class="btn" type="button" id="abx">Descartar</button></div></div>'
+  +'<div class="two"><div><label>Compra de productos</label><input type="text" id="pr" value="'+esc(c.prod)+'"></div><div><label>Monto productos ($)</label><input type="text" inputmode="numeric" class="clp" id="pm" value="'+fmtM(c.prodM)+'"></div></div>'
   +'<label>Notas</label><textarea id="nt" rows="2">'+esc(c.notas)+'</textarea>'
   +'<div class="rv'+(nuevaChk?'':' ess')+'" id="rvb"><select id="fnu"><option value="1"'+(nuevaChk?' selected':'')+'>Clienta nueva</option><option value="0"'+(nuevaChk?'':' selected')+'>Essencial</option></select><span class="com" id="cmv"></span><label><input type="checkbox" id="fac"> Aplicar comisión</label></div>'
   +'<h4>Paciente</h4><label>Nombre (si ya existe, escríbelo y se carga su ficha)</label><input type="text" id="fn" list="cl" value="'+esc(c.nombre)+'"><datalist id="cl">'+Object.keys(clientes).map(function(k){return '<option value="'+esc(clientes[k].nombre)+'">'}).join("")+'</datalist>'
@@ -227,7 +231,7 @@ function open(f,h){
   +'<label>Correo</label><input type="email" id="fe" value="'+esc(cl.correo)+'">'
   +'<div class="two"><div><label>Fecha de ingreso</label><input type="date" id="fi" value="'+esc(cl.ingreso||iso(new Date()))+'"></div><div><label>Cómo llegó</label><select id="fo">'+ori+'</select></div></div>'
   +'<label>Tratamiento por el que llegó a ESSENCIAL</label><select id="fl">'+selOpts(cl.llego||cl.procedimiento)+'</select><button class="btn" type="button" id="bp" style="margin-top:6px">＋ Crear promoción</button>'
-  +'<div class="pp" id="pp"><label>Nombre de la promoción</label><input type="text" id="pn"><div class="two"><div><label>Valor promocional (CLP)</label><input type="number" id="pvl"></div><div><label>Comisión (CLP, opcional)</label><input type="number" id="pk"></div></div><div class="row" style="margin-top:8px"><button class="btn p" type="button" id="pc">Crear y usar</button></div></div>'
+  +'<div class="pp" id="pp"><label>Nombre de la promoción</label><input type="text" id="pn"><div class="two"><div><label>Valor promocional ($)</label><input type="text" inputmode="numeric" class="clp" id="pvl"></div><div><label>Comisión ($, opcional)</label><input type="text" inputmode="numeric" class="clp" id="pk"></div></div><div class="row" style="margin-top:8px"><button class="btn p" type="button" id="pc">Crear y usar</button></div></div>'
   +'<h4>Historial del paciente</h4><div class="ths" id="fth"></div><div class="row"><button class="btn" type="button" id="pf">＋ Foto de ficha del paciente</button></div><input type="file" id="ph2" accept="image/*" hidden>'
   +'<div id="hh">'+histHtml(cid,id)+'</div>'
   +'<div class="row" style="margin-top:16px"><button class="btn p" id="sv">Guardar</button>'
@@ -240,10 +244,10 @@ function open(f,h){
   function th(u,lbl,p){var d=document.createElement("div");d.className="th";d.innerHTML='<img src="'+u+'"><small>'+esc(lbl)+(p?" (sin guardar)":"")+'</small>';d.querySelector("img").onclick=function(){this.classList.toggle("big")};$("#fth").appendChild(d)}
   function loadPh(){if(cid)db.collection("fotos").where("clienteId","==",cid).get().then(function(s){s.docs.forEach(function(x){var q=x.data();th(q.img,(q.tipo||"foto")+(q.monto?" "+money(q.monto):"")+" "+(q.fecha||"").split("-").reverse().join("/"),0)})}).catch(function(){})}
   loadPh();
-  function fill(x){[["fru","rut"],["ft","telefono"],["fe","correo"]].forEach(function(p){if(x[p[1]])$("#"+p[0]).value=x[p[1]]});if(x.nombre)$("#fn").value=x.nombre;if(Number(x.abono))$("#fa").value=Number(x.abono)}
-  function pick(n,p,cm){$("#tr").innerHTML=selOpts(n,1);$("#tr").value=n;$("#fl").innerHTML=selOpts(n);$("#fl").value=n;if(p)$("#fm").value=p}
+  function fill(x){[["fru","rut"],["ft","telefono"],["fe","correo"]].forEach(function(p){if(x[p[1]])$("#"+p[0]).value=x[p[1]]});if(x.nombre)$("#fn").value=x.nombre;if(Number(x.abono))setM("#fa",x.abono)}
+  function pick(n,p,cm){$("#tr").innerHTML=selOpts(n,1);$("#tr").value=n;$("#fl").innerHTML=selOpts(n);$("#fl").value=n;if(p)setM("#fm",p)}
   var facT=ex&&c.aplicaCom!==undefined;
-  function prevCom(){var nv=$("#fnu").value=="1",cap=$("#cp").value,st=$("#es").value,mf=Number($("#fmf").value)||0;
+  function prevCom(){var nv=$("#fnu").value=="1",cap=$("#cp").value,st=$("#es").value,mf=num($("#fmf").value)||0;
     $("#rvb").className="rv"+(nv?"":" ess");
     var prev=!!(cid&&Object.keys(citas).some(function(k){var y=citas[k];return k!=id&&y.clienteId==cid&&est(y)=="pagada"&&(y.fecha+y.hora)<(f+h)}));
     if(!facT)$("#fac").checked=cap=="Dani"&&nv&&!prev;
@@ -255,28 +259,28 @@ function open(f,h){
     var tps=topes(f,h,du,id);if(st!="cancelada"&&tps.length&&!confirm("Esta cita ("+h+" a "+hm(mins(h)+du)+") se topa con: "+tps.map(function(x){return x.hora+" "+(x.nombre||"")}).join(", ")+". ¿Guardar igual?"))return;
     var nvChk=$("#fnu").value=="1";
     var cli={nombre:nm,rut:$("#fru").value.trim(),telefono:$("#ft").value.trim(),correo:$("#fe").value.trim(),ingreso:$("#fi").value||iso(new Date()),origen:$("#fo").value,llego:$("#fl").value,nueva:nvChk};
-    var cd={fecha:f,hora:h,estado:st,tipo:$("#tp").value,dur:du,captada:$("#cp").value,clienteId:k,nombre:nm,tratamiento:trVal(),ses:Number($("#s1").value)||0,sesT:Number($("#s2").value)||0,monto:Number($("#fm").value)||0,montoF:Number($("#fmf").value)||0,aplicaCom:$("#fac").checked,abono:Number($("#fa").value)||0,prod:$("#pr").value.trim(),prodM:Number($("#pm").value)||0,notas:$("#nt").value.trim()};
+    var cd={fecha:f,hora:h,estado:st,tipo:$("#tp").value,dur:du,captada:$("#cp").value,clienteId:k,nombre:nm,tratamiento:trVal(),ses:Number($("#s1").value)||0,sesT:Number($("#s2").value)||0,monto:num($("#fm").value)||0,montoF:num($("#fmf").value)||0,aplicaCom:$("#fac").checked,abono:num($("#fa").value)||0,prod:$("#pr").value.trim(),prodM:num($("#pm").value)||0,notas:$("#nt").value.trim()};
     var ps=[db.doc("clientes/"+k).set(cli),db.doc("citas/"+id).set(cd)];
     pend.forEach(function(q,i){var o={clienteId:k,citaId:id,fecha:q.d||f,tipo:q.t,img:q.u};if(q.m)o.monto=q.m;ps.push(db.doc("fotos/"+k+"_"+Date.now().toString(36)+i).set(o))});
     logIt(acc,id,cd,cli);
     Promise.all(ps).then(close).catch(function(e){alert("No se pudo guardar: "+(e&&e.message||e))});
   }
   $("#fn").onchange=function(){var v=this.value.trim().toLowerCase(),k=Object.keys(clientes).filter(function(k){return (clientes[k].nombre||"").toLowerCase()==v})[0];if(k){cid=k;var x=clientes[k];fill(x);if(x.ingreso)$("#fi").value=x.ingreso;if(x.origen)$("#fo").value=x.origen;if(x.llego||x.procedimiento)$("#fl").value=x.llego||x.procedimiento;$("#fnu").value=x.nueva?"1":"0";prevCom();$("#hh").innerHTML=histHtml(cid,id);$("#fth").innerHTML="";pend.forEach(function(q){th(q.u,q.t,1)});loadPh()}};
-  $("#tr").onchange=function(){$("#tro").style.display=this.value=="__o"?"block":"none";var d=selData(this);if(d.p)$("#fm").value=d.p};
+  $("#tr").onchange=function(){$("#tro").style.display=this.value=="__o"?"block":"none";var d=selData(this);if(d.p)setM("#fm",d.p)};
   $("#fl").onchange=function(){if(!$("#tr").value&&this.value){var d=selData(this);pick(this.value,d.p,d.c)}};
   $("#tp").onchange=function(){$("#du").value=this.value=="evaluacion"?cfg.dE:cfg.dT};
   ["#cp","#es","#fmf","#fnu"].forEach(function(s){$(s).addEventListener("change",prevCom);$(s).addEventListener("input",prevCom)});$("#fac").checked=facT?!!c.aplicaCom:false;$("#fac").onchange=function(){facT=true;prevCom()};prevCom();
   var abU=null;
   $("#bab").onclick=function(){$("#ph3").click()};
   $("#ph3").onchange=function(){var file=this.files[0];if(!file)return;shrink(file).then(function(u){abU=u;$("#abf").style.display="block";$("#abm").focus()}).catch(function(){alert("No se pudo cargar la imagen")});this.value=""};
-  $("#abok").onclick=function(){var m=Number($("#abm").value)||0;if(!abU)return;if(!m){alert("Escribe el monto del comprobante");return}
+  $("#abok").onclick=function(){var m=num($("#abm").value)||0;if(!abU)return;if(!m){alert("Escribe el monto del comprobante");return}
     var d=$("#abd").value||iso(new Date());pend.push({u:abU,t:"abono",m:m,d:d});th(abU,"abono "+money(m)+" "+d.split("-").reverse().join("/"),1);
-    $("#fa").value=(Number($("#fa").value)||0)+m;abU=null;$("#abm").value="";$("#abf").style.display="none"};
+    setM("#fa",(num($("#fa").value)||0)+m);abU=null;$("#abm").value="";$("#abf").style.display="none"};
   $("#abx").onclick=function(){abU=null;$("#abm").value="";$("#abf").style.display="none"};
-  $("#a50").onclick=function(){$("#fa").value=Math.round((Number($("#fm").value)||0)/2)};
-  $("#atot").onclick=function(){$("#fa").value=Number($("#fm").value)||0};
+  $("#a50").onclick=function(){setM("#fa",Math.round((num($("#fm").value)||0)/2))};
+  $("#atot").onclick=function(){setM("#fa",num($("#fm").value)||0)};
   $("#bp").onclick=function(){$("#pp").style.display="block"};
-  $("#pc").onclick=function(){var n=$("#pn").value.trim(),p=Number($("#pvl").value)||0,cm=Number($("#pk").value)||0;if(!n||!p){alert("Escribe el nombre y el valor promocional");return}
+  $("#pc").onclick=function(){var n=$("#pn").value.trim(),p=num($("#pvl").value)||0,cm=num($("#pk").value)||0;if(!n||!p){alert("Escribe el nombre y el valor promocional");return}
     addPromo(n,p,cm).then(function(){pick(n,p,cm);$("#pp").style.display="none";$("#pn").value=$("#pvl").value=$("#pk").value=""}).catch(function(e){alert("No se pudo crear: "+(e&&e.message||e))})};
   $("#pb").onclick=function(){$("#ph").click()};
   $("#pf").onclick=function(){$("#ph2").click()};
@@ -287,13 +291,13 @@ function open(f,h){
       if(r.rut){$("#fru").value=r.rut;got.push("RUT")}
       if(r.correo){$("#fe").value=r.correo;got.push("correo")}
       if(r.telefono){$("#ft").value=r.telefono;got.push("teléfono")}
-      if(r.abono){pend.push({u:u,t:"abono",m:r.abono,d:iso(new Date())});th(u,"abono "+money(r.abono),1);$("#fa").value=(Number($("#fa").value)||0)+r.abono;got.push("abono "+money(r.abono))}
+      if(r.abono){pend.push({u:u,t:"abono",m:r.abono,d:iso(new Date())});th(u,"abono "+money(r.abono),1);setM("#fa",(num($("#fa").value)||0)+r.abono);got.push("abono "+money(r.abono))}
       var msg=got.length?"Leí: "+got.join(", ")+". Revisa antes de guardar.":"No encontré datos en la imagen. Escríbelos a mano.";
       if(r.fecha||r.hora){var fx=r.fecha&&r.fecha!=f,hx=r.hora&&r.hora!=h;if(fx||hx)msg+=" ⚠️ La imagen dice "+(r.fecha?r.fecha.split("-").reverse().join("/"):"")+(r.hora?" "+r.hora:"")+" y esta cita es "+f.split("-").reverse().join("/")+" "+h+"."}
       $("#ps").textContent=msg}catch(e){$("#ps").textContent="No se pudo leer la foto. Revisa la conexión e intenta de nuevo."}
     $("#pb").disabled=false};
   $("#sv").onclick=function(){save($("#es").value,ex?"editar":"crear")};
-  if($("#pg"))$("#pg").onclick=function(){if(!Number($("#fmf").value)){alert("Falta el Monto final. Escríbelo y vuelve a tocar \"Marcar pagada\".");$("#fmf").focus();return}$("#es").value="pagada";save("pagada","pagar")};
+  if($("#pg"))$("#pg").onclick=function(){if(!num($("#fmf").value)){alert("Falta el Monto final. Escríbelo y vuelve a tocar \"Marcar pagada\".");$("#fmf").focus();return}$("#es").value="pagada";save("pagada","pagar")};
   if($("#unpg"))$("#unpg").onclick=function(){if(!confirm("¿Quitar el pagado? La cita quedará como Confirmada."))return;$("#es").value="confirmada";save("confirmada","quitar pagado")};
   $("#cl2").onclick=close;
   if(ex){$("#cn").onclick=function(){var cc=est(c)=="cancelada";save(cc?"reservada":"cancelada",cc?"reactivar":"cancelar")};
