@@ -68,6 +68,7 @@ input[type=password],input[type=text],input[type=tel],input[type=email],input[ty
 .bloq{padding:14px 10px;border-radius:10px;background:var(--can);color:var(--chip);text-align:center;font-weight:600}
 .slot.pag{box-shadow:inset 4px 0 0 #3cb371}.slot.cnf{box-shadow:inset 4px 0 0 var(--acc)}
 .com{margin-top:6px;font-size:13px;color:var(--chip)}
+.rv.ess{background:var(--val)}.rv select{width:auto;margin:0}.rv label{display:flex;gap:6px;align-items:center;margin:0;font-weight:600}
 .ab{margin-top:8px;padding:10px;border:1px dashed var(--acc);border-radius:10px;display:none}
 </style></head><body>
 <div class="brand"><h1>Essencial</h1>
@@ -78,7 +79,7 @@ input[type=password],input[type=text],input[type=tel],input[type=email],input[ty
 <div id="stats"></div>
 <div id="app"></div>
 <div class="legend" id="lg"></div>
-<details id="pv" style="display:none"><summary>Comisiones del mes</summary><div id="pvb"></div></details>
+<div id="pv" class="note" style="display:none;font-size:14px;color:var(--chip);padding:10px;border:1px solid var(--bd);border-radius:10px;margin-top:10px"><div id="pvb"></div></div>
 <div class="ov show" id="lo"><div class="modal"><h2>Agenda Essencial · Ingresar</h2><p>Se ingresa una sola vez en este teléfono. Después la agenda abre directo.</p><label>Correo</label><input type="email" id="le"><label>Contraseña</label><input type="password" id="lp"><div class="row" style="margin-top:14px"><button class="btn p" id="lb">Entrar</button></div><p id="lm" style="color:#c0392b"></p></div></div>
 <div class="ov" id="ov"><div class="modal" id="md"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -109,7 +110,8 @@ function hm(m){return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).
 function durOf(c){return Number(c.dur)||(c.tipo=="evaluacion"?cfg.dE:cfg.dT)}
 function esNueva(c){var cl=clientes[c.clienteId];if(!cl||!cl.nueva)return false;
   return !Object.keys(citas).some(function(k){var x=citas[k];return k!=c.id&&x.clienteId==c.clienteId&&est(x)=="pagada"&&(x.fecha+x.hora)<(c.fecha+c.hora)})}
-function comision(c){return (c.captada=="Dani"&&est(c)=="pagada"&&esNueva(c))?Math.round((Number(c.montoF)||0)*PCT):0}
+function aplica(c){return c.aplicaCom!==undefined?!!c.aplicaCom:(c.captada=="Dani"&&esNueva(c))}
+function comision(c){return (aplica(c)&&est(c)=="pagada")?Math.round((Number(c.montoF)||0)*PCT):0}
 function topes(f,h,dur,id){var a=mins(h),b=a+dur;return Object.keys(citas).filter(function(k){var x=citas[k];if(k==id||x.fecha!=f||est(x)=="cancelada")return false;var s=mins(x.hora),e=s+durOf(x);return s<b&&a<e}).map(function(k){return citas[k]})}
 function nosun(d){return wd(d)==6?add(d,1):d}
 function lst(s){return s.split(",").map(function(x){return x.trim()}).filter(Boolean).map(nh).sort()}
@@ -153,11 +155,12 @@ function render(){
   Object.keys(clientes).forEach(function(k){var c=clientes[k];if((c.ingreso||"").slice(0,7)==pre){nc++;var o=c.origen||"Sin dato";or[o]=(or[o]||0)+1}});
   var cap={Dani:0,Vale:0},sinF=0;
   Object.keys(citas).forEach(function(k){var c=citas[k];if(c.fecha.slice(0,7)==pre&&est(c)!="cancelada"){nt++;if(cap[c.captada]!=null)cap[c.captada]++;
-    var m=comision(c);if(m){n++;v+=m}else if(c.captada=="Dani"&&est(c)=="pagada"&&esNueva(c)&&!Number(c.montoF))sinF++}});
+    var m=comision(c);if(m){n++;v+=m}else if(aplica(c)&&est(c)=="pagada"&&!Number(c.montoF))sinF++}});
+  var tot=0;Object.keys(citas).forEach(function(k){tot+=comision(citas[k])});
   $("#stats").innerHTML='Clientes nuevos en '+MES[cur.getMonth()]+': <b>'+nc+'</b>'+(nc?' · '+Object.keys(or).map(function(o){return esc(o)+' '+or[o]}).join(', '):'')+' · Citas del mes: <b>'+nt+'</b> (Dani '+cap.Dani+' · Vale '+cap.Vale+')';
   $("#lg").innerHTML='<span><i style="background:var(--dan)"></i>Captada por Dani</span><span><i style="background:var(--val)"></i>Captada por Vale</span><span><i style="background:var(--free);box-shadow:inset 4px 0 0 var(--acc)"></i>Confirmada</span><span><i style="background:var(--free);box-shadow:inset 4px 0 0 #3cb371"></i>Pagada</span><span><i style="background:var(--can)"></i>Cancelada</span>';
   $("#pv").style.display=uid?"block":"none";
-  $("#pvb").innerHTML='Ventas cerradas por Dani (clientas nuevas, pagadas) en '+MES[cur.getMonth()]+': <b>'+n+'</b> · Comisión del mes (10% del monto final): <b>'+money(v)+'</b>'+(sinF?' · <span style="color:#c0392b">'+sinF+' pagada(s) sin monto final</span>':'');
+  $("#pvb").innerHTML='💰 Comisión Dani · '+MES[cur.getMonth()]+': <b>'+money(v)+'</b> ('+n+' venta'+(n==1?'':'s')+') · Total acumulado: <b>'+money(tot)+'</b>'+(sinF?' · <span style="color:#c0392b">'+sinF+' pagada(s) sin monto final</span>':'');
   $("#who").textContent="👤 "+(quien||"¿Quién eres?");
   document.querySelectorAll("#vw button").forEach(function(b){b.className=b.dataset.v==view?"on":""});
 }
@@ -218,7 +221,7 @@ function open(f,h){
   +'<div class="ab" id="abf"><label>Monto del comprobante (CLP)</label><input type="number" id="abm"><label>Fecha de la transferencia</label><input type="date" id="abd" value="'+iso(new Date())+'"><div class="row" style="margin-top:8px"><button class="btn p" type="button" id="abok">Agregar al abono</button><button class="btn" type="button" id="abx">Descartar</button></div></div>'
   +'<div class="two"><div><label>Compra de productos</label><input type="text" id="pr" value="'+esc(c.prod)+'"></div><div><label>Monto productos (CLP)</label><input type="number" id="pm" value="'+esc(c.prodM)+'"></div></div>'
   +'<label>Notas</label><textarea id="nt" rows="2">'+esc(c.notas)+'</textarea>'
-  +'<div class="rv"><label><input type="checkbox" id="fnu"'+(nuevaChk?" checked":"")+'> Clienta nueva</label><span class="com" id="cmv"></span></div>'
+  +'<div class="rv'+(nuevaChk?'':' ess')+'" id="rvb"><select id="fnu"><option value="1"'+(nuevaChk?' selected':'')+'>Clienta nueva</option><option value="0"'+(nuevaChk?'':' selected')+'>Essencial</option></select><span class="com" id="cmv"></span><label><input type="checkbox" id="fac"> Aplicar comisión</label></div>'
   +'<h4>Paciente</h4><label>Nombre (si ya existe, escríbelo y se carga su ficha)</label><input type="text" id="fn" list="cl" value="'+esc(c.nombre)+'"><datalist id="cl">'+Object.keys(clientes).map(function(k){return '<option value="'+esc(clientes[k].nombre)+'">'}).join("")+'</datalist>'
   +'<div class="two"><div><label>RUT</label><input type="text" id="fru" value="'+esc(cl.rut)+'"></div><div><label>Teléfono</label><input type="tel" id="ft" value="'+esc(cl.telefono)+'"></div></div>'
   +'<label>Correo</label><input type="email" id="fe" value="'+esc(cl.correo)+'">'
@@ -239,26 +242,30 @@ function open(f,h){
   loadPh();
   function fill(x){[["fru","rut"],["ft","telefono"],["fe","correo"]].forEach(function(p){if(x[p[1]])$("#"+p[0]).value=x[p[1]]});if(x.nombre)$("#fn").value=x.nombre;if(Number(x.abono))$("#fa").value=Number(x.abono)}
   function pick(n,p,cm){$("#tr").innerHTML=selOpts(n,1);$("#tr").value=n;$("#fl").innerHTML=selOpts(n);$("#fl").value=n;if(p)$("#fm").value=p}
-  function prevCom(){var x={id:id,fecha:f,hora:h,clienteId:cid,captada:$("#cp").value,estado:$("#es").value,montoF:$("#fmf").value},nv=$("#fnu").checked,sv=cid&&clientes[cid];
-    var prev=!!(cid&&Object.keys(citas).some(function(k){var y=citas[k];return k!=id&&y.clienteId==cid&&est(y)=="pagada"&&(y.fecha+y.hora)<(f+h)})),ok=x.captada=="Dani"&&nv&&!prev;
-    $("#cmv").textContent=(x.captada=="Dani"&&nv&&prev)?"Ya tuvo una cita pagada antes: esta no genera comisión":ok?(x.estado=="pagada"?(Number(x.montoF)?"Comisión Dani: "+money(Math.round(Number(x.montoF)*PCT)):"Falta el monto final para la comisión"):"Comisión Dani al quedar Pagada (10% del monto final)"):""}
+  var facT=ex&&c.aplicaCom!==undefined;
+  function prevCom(){var nv=$("#fnu").value=="1",cap=$("#cp").value,st=$("#es").value,mf=Number($("#fmf").value)||0;
+    $("#rvb").className="rv"+(nv?"":" ess");
+    var prev=!!(cid&&Object.keys(citas).some(function(k){var y=citas[k];return k!=id&&y.clienteId==cid&&est(y)=="pagada"&&(y.fecha+y.hora)<(f+h)}));
+    if(!facT)$("#fac").checked=cap=="Dani"&&nv&&!prev;
+    var on=$("#fac").checked;
+    $("#cmv").textContent=!on?"Sin comisión":!mf?"Comisión: falta el monto final":"Comisión Dani: "+money(Math.round(mf*PCT))+(st=="pagada"?"":" (pendiente hasta Pagada)")}
   function save(st,acc){
     var nm=$("#fn").value.trim(),k=cid||("c"+Date.now().toString(36)),du=Number($("#du").value)||(($("#tp").value=="evaluacion")?cfg.dE:cfg.dT);
     if(!nm){alert("Escribe el nombre de la clienta");return}
     var tps=topes(f,h,du,id);if(st!="cancelada"&&tps.length&&!confirm("Esta cita ("+h+" a "+hm(mins(h)+du)+") se topa con: "+tps.map(function(x){return x.hora+" "+(x.nombre||"")}).join(", ")+". ¿Guardar igual?"))return;
-    var nvChk=$("#fnu").checked;
+    var nvChk=$("#fnu").value=="1";
     var cli={nombre:nm,rut:$("#fru").value.trim(),telefono:$("#ft").value.trim(),correo:$("#fe").value.trim(),ingreso:$("#fi").value||iso(new Date()),origen:$("#fo").value,llego:$("#fl").value,nueva:nvChk};
-    var cd={fecha:f,hora:h,estado:st,tipo:$("#tp").value,dur:du,captada:$("#cp").value,clienteId:k,nombre:nm,tratamiento:trVal(),ses:Number($("#s1").value)||0,sesT:Number($("#s2").value)||0,monto:Number($("#fm").value)||0,montoF:Number($("#fmf").value)||0,abono:Number($("#fa").value)||0,prod:$("#pr").value.trim(),prodM:Number($("#pm").value)||0,notas:$("#nt").value.trim()};
+    var cd={fecha:f,hora:h,estado:st,tipo:$("#tp").value,dur:du,captada:$("#cp").value,clienteId:k,nombre:nm,tratamiento:trVal(),ses:Number($("#s1").value)||0,sesT:Number($("#s2").value)||0,monto:Number($("#fm").value)||0,montoF:Number($("#fmf").value)||0,aplicaCom:$("#fac").checked,abono:Number($("#fa").value)||0,prod:$("#pr").value.trim(),prodM:Number($("#pm").value)||0,notas:$("#nt").value.trim()};
     var ps=[db.doc("clientes/"+k).set(cli),db.doc("citas/"+id).set(cd)];
     pend.forEach(function(q,i){var o={clienteId:k,citaId:id,fecha:q.d||f,tipo:q.t,img:q.u};if(q.m)o.monto=q.m;ps.push(db.doc("fotos/"+k+"_"+Date.now().toString(36)+i).set(o))});
     logIt(acc,id,cd,cli);
     Promise.all(ps).then(close).catch(function(e){alert("No se pudo guardar: "+(e&&e.message||e))});
   }
-  $("#fn").onchange=function(){var v=this.value.trim().toLowerCase(),k=Object.keys(clientes).filter(function(k){return (clientes[k].nombre||"").toLowerCase()==v})[0];if(k){cid=k;var x=clientes[k];fill(x);if(x.ingreso)$("#fi").value=x.ingreso;if(x.origen)$("#fo").value=x.origen;if(x.llego||x.procedimiento)$("#fl").value=x.llego||x.procedimiento;$("#fnu").checked=!!x.nueva;prevCom();$("#hh").innerHTML=histHtml(cid,id);$("#fth").innerHTML="";pend.forEach(function(q){th(q.u,q.t,1)});loadPh()}};
+  $("#fn").onchange=function(){var v=this.value.trim().toLowerCase(),k=Object.keys(clientes).filter(function(k){return (clientes[k].nombre||"").toLowerCase()==v})[0];if(k){cid=k;var x=clientes[k];fill(x);if(x.ingreso)$("#fi").value=x.ingreso;if(x.origen)$("#fo").value=x.origen;if(x.llego||x.procedimiento)$("#fl").value=x.llego||x.procedimiento;$("#fnu").value=x.nueva?"1":"0";prevCom();$("#hh").innerHTML=histHtml(cid,id);$("#fth").innerHTML="";pend.forEach(function(q){th(q.u,q.t,1)});loadPh()}};
   $("#tr").onchange=function(){$("#tro").style.display=this.value=="__o"?"block":"none";var d=selData(this);if(d.p)$("#fm").value=d.p};
   $("#fl").onchange=function(){if(!$("#tr").value&&this.value){var d=selData(this);pick(this.value,d.p,d.c)}};
   $("#tp").onchange=function(){$("#du").value=this.value=="evaluacion"?cfg.dE:cfg.dT};
-  ["#cp","#es","#fmf","#fnu"].forEach(function(s){$(s).addEventListener("change",prevCom);$(s).addEventListener("input",prevCom)});prevCom();
+  ["#cp","#es","#fmf","#fnu"].forEach(function(s){$(s).addEventListener("change",prevCom);$(s).addEventListener("input",prevCom)});$("#fac").checked=facT?!!c.aplicaCom:false;$("#fac").onchange=function(){facT=true;prevCom()};prevCom();
   var abU=null;
   $("#bab").onclick=function(){$("#ph3").click()};
   $("#ph3").onchange=function(){var file=this.files[0];if(!file)return;shrink(file).then(function(u){abU=u;$("#abf").style.display="block";$("#abm").focus()}).catch(function(){alert("No se pudo cargar la imagen")});this.value=""};
